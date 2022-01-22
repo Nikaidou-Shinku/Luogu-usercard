@@ -1,9 +1,9 @@
 import $ from "jquery";
 import React, { CSSProperties, useEffect, useState } from "react";
-import { UserInfo } from "../data/interfaces/types";
+import { UserInfo, ProblemInfo } from "../data/interfaces/types";
 import { consts } from "../data/constants";
 import { chatWith, getAvatar, getFansPage, getFollowPage, getPracticePage, UPDATE_FOLLOW } from "../data/LuoguAPI";
-import { BADGE_STYLE, LG_BG, LG_FG, LG_FL, bannedUserAvatar, defaultBackgroundURL } from "../styles/luoguStyles";
+import { BADGE_STYLE, LG_BG, LG_FG, LG_FL, LG_PBG, bannedUserAvatar, defaultBackgroundURL } from "../styles/luoguStyles";
 import { $CSS, CARD_STYLE, CARD_CONTAINER_STYLE, CARD_HEADER_STYLE } from "../styles/cardStyles";
 import { loadAddress } from ".";
 
@@ -14,6 +14,8 @@ const BLOG_STYLE: CSSProperties = { position: "absolute", right: 0, top: -2, fon
 const SLOGAN_STYLE: CSSProperties = { fontSize: 14, margin: "0.25em 1.5em", wordBreak: "break-all", fontWeight: "normal" };
 const STAT_STYLE: CSSProperties = { display: "flex", flexDirection: "row", width: "100%" };
 const STAT_BUTTON_STYLE: CSSProperties = { fontSize: 16, height: 22, flex: 1, borderRadius: 10, padding: "3px 0px", textAlign: "center", cursor: "pointer", lineHeight: "18px" };
+const PROBLEM_STATUS_STYLE: CSSProperties = { margin: "0.25em 1em", height: 10, borderRadius: 5, display: "flex", flexDirection: "row" };
+
 
 const getStatItemStyle = (fontSize: number): CSSProperties => {
   return {
@@ -77,6 +79,8 @@ const ChatButton = (props: { uid: number }) => {
 };
 
 const updateFollow = (uid: number, setFollow: any, value: number, fanState: any) => {
+  if ((value & 3) === 2)
+    return;
   const target = (value & 1) ^ 1;
   $.ajax({
     type: "POST",
@@ -100,13 +104,16 @@ const updateFollow = (uid: number, setFollow: any, value: number, fanState: any)
 const FollowButton = (props: { uid: number, state: number, changeState: any, fanState: any }) => {
   const [mouseOn, setMouse] = useState(false);
   const [followState, setFollow] = useState(props.state);
-  const followColor = (followState & 1) === 0 ? (mouseOn ? "rgb(0, 86, 179)" : "rgb(52, 152, 219)") : "#bbb";
+  const followColor = ((followState & 3) === 2) ? "rgb(231, 76, 60)" : (
+    (followState & 3) === 0 ? (mouseOn ? "rgb(0, 86, 179)" : "rgb(52, 152, 219)") : "#bbb");
   const getFollowText = () => {
-    if ((followState & 1) === 0)
+    if ((followState & 3) === 2)
+      return "已拉黑";
+    if ((followState & 3) === 0)
       return "关注";
     if (mouseOn)
       return "取消关注";
-    if ((followState & 2) === 2)
+    if ((followState & 4) === 4)
       return "已互关";
     return "已关注";
   };
@@ -122,37 +129,49 @@ const FollowButton = (props: { uid: number, state: number, changeState: any, fan
       ])
     }>
       {
-        (followState === 3) ?
-        <svg viewBox="0 0 512 512" style={{
-          width: 16,
-          height: 16,
-          marginBottom: 3,
-          marginRight: 5,
-          verticalAlign: "middle",
-          fill: followColor
-        }}>
-          <path d="M472.1 270.5l-193.1 199.7c-12.64 13.07-33.27 13.08-45.91 .0107l-193.2-199.7C-16.21 212.5-13.1 116.7 49.04 62.86C103.3 15.88 186.4 24.42 236.3 75.98l19.7 20.27l19.7-20.27c49.95-51.56 132.1-60.1 187.3-13.12C525.1 116.6 528.2 212.5 472.1 270.5z" />
-        </svg> :
-        ((followState & 1) !== 0 ? 
-        <svg viewBox="0 0 512 512" style={{
-          width: 16,
-          height: 16,
-          marginBottom: 3,
-          marginRight: 5,
-          verticalAlign: "middle",
-          fill: followColor
-        }}>
-          <path xmlns="http://www.w3.org/2000/svg" d="M480 128c0 8.188-3.125 16.38-9.375 22.62l-256 256C208.4 412.9 200.2 416 192 416s-16.38-3.125-22.62-9.375l-128-128C35.13 272.4 32 264.2 32 256c0-18.28 14.95-32 32-32c8.188 0 16.38 3.125 22.62 9.375L192 338.8l233.4-233.4C431.6 99.13 439.8 96 448 96C465.1 96 480 109.7 480 128z"/>
-        </svg> : <svg viewBox="0 0 512 512" style={{
-          width: 16,
-          height: 16,
-          marginBottom: 3,
-          marginRight: 5,
-          verticalAlign: "middle",
-          fill: followColor
-        }}>
-          <path xmlns="http://www.w3.org/2000/svg" d="M432 256c0 17.69-14.33 32.01-32 32.01H256v144c0 17.69-14.33 31.99-32 31.99s-32-14.3-32-31.99v-144H48c-17.67 0-32-14.32-32-32.01s14.33-31.99 32-31.99H192v-144c0-17.69 14.33-32.01 32-32.01s32 14.32 32 32.01v144h144C417.7 224 432 238.3 432 256z"/>
-        </svg>)
+        ((followState & 3) === 2) ?
+          <svg viewBox="0 0 512 512" style={{
+            width: 16,
+            height: 16,
+            marginBottom: 3,
+            marginRight: 5,
+            verticalAlign: "middle",
+            fill: followColor
+          }}>
+            <path d="M633.8 458.1L362.3 248.3C412.1 230.7 448 183.8 448 128 448 57.3 390.7 0 320 0c-67.1 0-121.5 51.8-126.9 117.4L45.5 3.4C38.5-2 28.5-.8 23 6.2L3.4 31.4c-5.4 7-4.2 17 2.8 22.4l588.4 454.7c7 5.4 17 4.2 22.5-2.8l19.6-25.3c5.4-6.8 4.1-16.9-2.9-22.3zM96 422.4V464c0 26.5 21.5 48 48 48h350.2L207.4 290.3C144.2 301.3 96 356 96 422.4z" />
+          </svg>
+        : ((followState === 5) ?
+          <svg viewBox="0 0 512 512" style={{
+            width: 16,
+            height: 16,
+            marginBottom: 3,
+            marginRight: 5,
+            verticalAlign: "middle",
+            fill: followColor
+          }}>
+            <path d="M472.1 270.5l-193.1 199.7c-12.64 13.07-33.27 13.08-45.91 .0107l-193.2-199.7C-16.21 212.5-13.1 116.7 49.04 62.86C103.3 15.88 186.4 24.42 236.3 75.98l19.7 20.27l19.7-20.27c49.95-51.56 132.1-60.1 187.3-13.12C525.1 116.6 528.2 212.5 472.1 270.5z" />
+          </svg> :
+          ((followState & 3) !== 0 ? 
+          <svg viewBox="0 0 512 512" style={{
+            width: 16,
+            height: 16,
+            marginBottom: 3,
+            marginRight: 5,
+            verticalAlign: "middle",
+            fill: followColor
+          }}>
+            <path xmlns="http://www.w3.org/2000/svg" d="M480 128c0 8.188-3.125 16.38-9.375 22.62l-256 256C208.4 412.9 200.2 416 192 416s-16.38-3.125-22.62-9.375l-128-128C35.13 272.4 32 264.2 32 256c0-18.28 14.95-32 32-32c8.188 0 16.38 3.125 22.62 9.375L192 338.8l233.4-233.4C431.6 99.13 439.8 96 448 96C465.1 96 480 109.7 480 128z"/>
+          </svg> : <svg viewBox="0 0 512 512" style={{
+            width: 16,
+            height: 16,
+            marginBottom: 3,
+            marginRight: 5,
+            verticalAlign: "middle",
+            fill: followColor
+          }}>
+            <path xmlns="http://www.w3.org/2000/svg" d="M432 256c0 17.69-14.33 32.01-32 32.01H256v144c0 17.69-14.33 31.99-32 31.99s-32-14.3-32-31.99v-144H48c-17.67 0-32-14.32-32-32.01s14.33-31.99 32-31.99H192v-144c0-17.69 14.33-32.01 32-32.01s32 14.32 32 32.01v144h144C417.7 224 432 238.3 432 256z"/>
+          </svg>)
+        )
       }
       {getFollowText()}
     </div>
@@ -244,7 +263,65 @@ const BlogButton = (props: { address: string }) => {
   );
 };
 
-export const InfoCard = (userInfo: UserInfo) => {
+const PassedProblemsInfo = (props: {info: number[]}) => {
+  let count = 0;
+  props.info.forEach((x) => {count += x;});
+  // definition of ".problemStatusBar" => cardStyle.ts
+  // I want CSS3 !!! /ll
+  return (
+    <div style={PROBLEM_STATUS_STYLE}>
+      {props.info.map((item, index) => {
+        return (
+          <div style={$CSS([
+            LG_PBG(index),
+            {
+              width: `${item / count * 100}%`,
+              height: 10,
+              position: "relative"
+            }])} className="problemStatusBar">
+            <div style={LG_PBG(index)}>{item}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const UidDisplayer = (props: {num: number}) => {
+  // definition of ".uidDisplayer" => cardStyle.ts
+  // I want CSS3 !!! /ll
+  let [successIf, setSuccess] = useState(false);
+  const copyUID = () => {
+    if(successIf)
+      return;
+    let x = document.createElement("input");
+    x.value = "" + props.num;
+    document.body.appendChild(x);
+    x.select();
+    document.execCommand("Copy");
+    document.body.removeChild(x);
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+    }, 1000);
+  };
+  return (
+    <div className={["uidDisplayer", (successIf ? "success" : "")].join(" ")} onClick={copyUID}>#{props.num}</div>
+  );
+};
+
+const getProblemStatus = (problems: ProblemInfo[]): number[] => {
+  let ret: number[] = [0, 0, 0, 0, 0, 0, 0, 0];
+  if(problems !== undefined)
+    problems.forEach((item) => {
+      ++ ret[item.difficulty];
+    });
+  return ret;
+};
+
+export const InfoCard = (argv: [UserInfo, ProblemInfo[]]) => {
+  const userInfo: UserInfo = argv[0];
+  const problemStatus: number[] = getProblemStatus(argv[1]);
   if (userInfo.background === "")
     userInfo.background = defaultBackgroundURL;
   const cUID = consts.currentUID;
@@ -252,16 +329,19 @@ export const InfoCard = (userInfo: UserInfo) => {
   const userBadge = userColor === "cheater" ? "作弊者" : userInfo.badge;
   const hasBadge = (userBadge !== null) && (userBadge !== "");
   const hasBlog = userInfo.blogAddress !== null;
-  const hasSlogan = userInfo.slogan !== "";
+  const hasSlogan = (userInfo.slogan !== "") && (userInfo.slogan !== null);
   const hasRelationship = cUID > 0 && userInfo.uid !== cUID;
+  const hasProblemset = (argv[1] !== undefined) && (argv[1].length !== 0);
 
   // followState:
   //   - 0: we did not know each other
   //   - 1: i followed him but he did not follow me
-  //   - 2: he followed me but i did not follow him
-  //   - 3: we followed each other
+  //   - 2: I add him into blacklist
+  //   - 4: he followed me but I did not follow him
+  //   - 5: we followed each other
+  //   - 6: I add him into blacklist but he follow me
   const [fanNumber, setFan] = useState(userInfo.followerCount);
-  const [followState, setFollow] = useState(userInfo.reverseUserRelationship * 2 + userInfo.userRelationship);
+  const [followState, setFollow] = useState(userInfo.reverseUserRelationship * 4 + userInfo.userRelationship);
   const [sloganElemet, setLoadSlogan] = useState([<span>{userInfo.slogan}</span>]);
 
   if(hasSlogan){
@@ -305,12 +385,16 @@ export const InfoCard = (userInfo: UserInfo) => {
                 }
               ])
             }>
-              #{userInfo.uid}
+              <UidDisplayer num={userInfo.uid}></UidDisplayer>
               {hasBlog && <BlogButton address={userInfo.blogAddress} />}
             </div>
           </div>
         </div>
         {hasSlogan && <div style={SLOGAN_STYLE}>{sloganElemet}</div>}
+        {
+          hasProblemset &&
+          <PassedProblemsInfo info={problemStatus}></PassedProblemsInfo>
+        }
         <div style={STAT_STYLE}>
           <CardStatItem link={getFollowPage(userInfo.uid)} name="关注" value={String(userInfo.followingCount)} />
           <CardStatItem link={getFansPage(userInfo.uid)} name="粉丝" value={String(fanNumber)} />
